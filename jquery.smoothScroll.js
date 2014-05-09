@@ -33,34 +33,31 @@
 (function ($) {
 	var defaults = {
 		step: 120,				//每次滚轮事件，页面滚动的距离
-		
+		during: 600,
 		preventDefault: true,
 		stopPropagation: true
 	};
 
 	var isFF = 'MozAppearance' in document.documentElement.style;
-	
-	$.smoothScroll = function() {
-	};
 
 	$.fn.smoothScroll = function (options) {
 		var opts = $.extend({}, $.fn.smoothScroll.defaults, options);
 		return $(this).each(function () {
 			var $this = $(this);
-			$this.scrollable().on(isFF?'DOMMouseScroll':'mousewheel', function(e){
-				console.dir(e.originalEvent);
+			_scrollable($this).on(isFF?'DOMMouseScroll':'mousewheel', function(e){
 				if(opts.preventDefault) e.preventDefault();
 				var originalEvent = e.originalEvent;
 				var delta = isFF ? originalEvent.detail : -(originalEvent.wheelDelta == undefined ? -originalEvent.deltaY: originalEvent.wheelDelta);
 				delta  = delta / Math.abs(delta);
-				_animate($this.scrollable(), {scrollTop: $(this).scrollTop() + opts.step * delta}, {during: 600});
+				_animate($(this), {scrollTop: $(this).scrollTop() + opts.step * delta}, {during: opts.during});
 			});
 			
 		});
 	};
 	
-	$.fn.scrollable = function(){
-		return this.map(function(){
+	//获取真正的滚轮事件可以绑定的元素对象
+	function _scrollable($obj) {
+		return $obj.map(function(){
 			var elem = this,
 				isWin = !elem.nodeName || $.inArray( elem.nodeName.toLowerCase(), ['iframe','#document','html','body'] ) != -1;
 				if( !isWin )
@@ -71,9 +68,9 @@
 				doc.body : 
 				doc.documentElement;
 		});
-	};
-
+	}
 	
+	//自定义动画函数
 	var requestAnimationId;
 	function _animate($obj, props, options){
 		if(requestAnimationId) cancelAnimationFrame(requestAnimationId);
