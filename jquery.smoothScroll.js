@@ -32,43 +32,65 @@
 */
 (function ($) {
 	var defaults = {
-		step: 100,				//每次滚轮事件，页面滚动的距离
+		step: 120,				//每次滚轮事件，页面滚动的距离
 		
 		preventDefault: true,
 		stopPropagation: true
 	};
 
+	var isFF = 'MozAppearance' in document.documentElement.style;
+	
 	$.smoothScroll = function() {
 	};
 
 	$.fn.smoothScroll = function (options) {
 		var opts = $.extend({}, $.fn.smoothScroll.defaults, options);
 		return $(this).each(function () {
-			
 			var $this = $(this);
-			$this.on('click', function(){
-				scrollUp($this);
+			$this.scrollable().on(isFF?'DOMMouseScroll':'mousewheel', function(e){
+				console.dir(e.originalEvent);
+				if(opts.preventDefault) e.preventDefault();
+				var originalEvent = e.originalEvent;
+				var delta = isFF ? originalEvent.detail : -(originalEvent.wheelDelta == undefined ? -originalEvent.deltaY: originalEvent.wheelDelta);
+				delta  = delta / Math.abs(delta);
+				_animate($this.scrollable(), {scrollTop: $(this).scrollTop() + opts.step * delta}, {during: 600});
 			});
 			
 		});
 	};
 	
-	function scrollUp($dom) {
-		var oldPos = {
-			top: $dom.scrollTop(),
-			left: $dom.scrollLeft()
+	$.fn.scrollable = function(){
+		return this.map(function(){
+			var elem = this,
+				isWin = !elem.nodeName || $.inArray( elem.nodeName.toLowerCase(), ['iframe','#document','html','body'] ) != -1;
+				if( !isWin )
+					return elem;
+			var doc = (elem.contentWindow || elem).document || elem.ownerDocument || elem;
+			
+			return $.browser.safari || doc.compatMode == 'BackCompat' ?
+				doc.body : 
+				doc.documentElement;
+		});
+	};
+
+	
+	var requestAnimationId;
+	function _animate($obj, props, options){
+		if(requestAnimationId) cancelAnimationFrame(requestAnimationId);
+		if(props.scrollTop) {
+			var oldScrollTop = $obj.scrollTop();
+			var distance = props.scrollTop - oldScrollTop;
 		}
-		console.log(oldPos);
-		var start = 0, during = 500, current = new Date().getTime();
-		var _run = function() {
-	         start = new Date().getTime() - current;
-	         var top = Tween.Sine.easeOut(start, oldPos.top, 100, during);
-	         $dom.scrollTop(top);
-	         if (start < during) {
-	         	requestAnimationFrame(_run);
-	         }
-	    };
-	    _run();
+		var start = 0, during = options.during, current = new Date().getTime(); 
+		var _run = function(){
+			start = new Date().getTime() - current;
+			var newTop = Tween.Sine.easeOut(start, oldScrollTop, distance, during);
+			$obj.scrollTop(newTop);
+			if (start < during) {
+         		requestAnimationId = requestAnimationFrame(_run);
+         	}
+		};
+		_run();
 	}
 
 	$.fn.smoothScroll.defaults = defaults;
