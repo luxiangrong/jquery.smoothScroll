@@ -1,8 +1,16 @@
+/*
+	Smooth Scroll v0.1 - 2014-04-29
+	scroll the browser smooth
+	(c) 2014 HanShan Snow - http://hanshansnow.sinaapp.com/
+	license: http://www.opensource.org/licenses/mit-license.php
+*/
 (function() {
     var lastTime = 0;
     var vendors = ['webkit', 'moz'];
+    
     for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
         window.requestAnimationFrame = window[vendors[x] + 'RequestAnimationFrame'];
+        
         window.cancelAnimationFrame = window[vendors[x] + 'CancelAnimationFrame'] ||    // Webkit中此取消方法的名字变了
                                       window[vendors[x] + 'CancelRequestAnimationFrame'];
     }
@@ -24,15 +32,10 @@
         };
     }
 }());
-/*!
-	Smooth Scroll v0.1 - 2014-04-29
-	scroll the browser smooth
-	(c) 2014 HanShan Snow - http://www.jacklmoore.com/zoom
-	license: http://www.opensource.org/licenses/mit-license.php
-*/
+
 (function ($) {
 	var defaults = {
-		step: 120,				//每次滚轮事件，页面滚动的距离
+		step: 80,				//每次滚轮事件，页面滚动的距离
 		during: 600,
 		preventDefault: true,
 		stopPropagation: true
@@ -45,11 +48,22 @@
 		return $(this).each(function () {
 			var $this = $(this);
 			_scrollable($this).on(isFF?'DOMMouseScroll':'mousewheel', function(e){
-				if(opts.preventDefault) e.preventDefault();
+				if(opts.preventDefault) 
+					e.preventDefault();
 				var originalEvent = e.originalEvent;
 				var delta = isFF ? originalEvent.detail : -(originalEvent.wheelDelta == undefined ? -originalEvent.deltaY: originalEvent.wheelDelta);
 				delta  = delta / Math.abs(delta);
-				_animate($(this), {scrollTop: $(this).scrollTop() + opts.step * delta}, {during: opts.during});
+				
+				if($(this).data('delta') == undefined) {
+					var oldDelta = 0;
+				} else {
+					var oldDelta = parseInt($(this).data('delta'));
+				}
+				if(delta * oldDelta < 0) {
+					oldDelta = 0;
+				} 
+				$(this).data('delta', oldDelta + delta);
+				_animate($(this), {scrollTop: opts.step * (oldDelta + delta)}, {during: opts.during});
 			});
 			
 		});
@@ -73,19 +87,24 @@
 	//自定义动画函数
 	var requestAnimationId;
 	function _animate($obj, props, options){
+		window.setTimeout(function(){
+			$obj.data('delta', 0);
+		},100);
 		if(requestAnimationId) cancelAnimationFrame(requestAnimationId);
 		if(props.scrollTop) {
 			var oldScrollTop = $obj.scrollTop();
-			var distance = props.scrollTop - oldScrollTop;
+			var distance = props.scrollTop;
 		}
 		var start = 0, during = options.during, current = new Date().getTime(); 
 		var _run = function(){
 			start = new Date().getTime() - current;
-			var newTop = Tween.Sine.easeOut(start, oldScrollTop, distance, during);
+			var newTop = Tween.Cubic.easeOut(start, oldScrollTop, distance, during);
 			$obj.scrollTop(newTop);
 			if (start < during) {
          		requestAnimationId = requestAnimationFrame(_run);
-         	}
+         	} else {
+         		$obj.data('delta', 0);
+         	} 
 		};
 		_run();
 	}
