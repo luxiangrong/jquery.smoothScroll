@@ -37,6 +37,7 @@
 	var defaults = {
 		step: 80,				//每次滚轮事件，页面滚动的距离
 		during: 600,
+		easing: 'swing',
 		preventDefault: true,
 		stopPropagation: true
 	};
@@ -63,7 +64,7 @@
 					oldDelta = 0;
 				} 
 				$(this).data('delta', oldDelta + delta);
-				_animate($(this), {scrollTop: opts.step * (oldDelta + delta)}, {during: opts.during});
+				_animate($(this), {scrollTop: opts.step * (oldDelta + delta)}, {during: opts.during, easing: opts.easing});
 			});
 			
 		});
@@ -95,10 +96,15 @@
 			var oldScrollTop = $obj.scrollTop();
 			var distance = props.scrollTop;
 		}
+		if(props.easing) {
+			var easing = props.easing;
+		} else {
+			var easing = 'swing';
+		}
 		var start = 0, during = options.during, current = new Date().getTime(); 
 		var _run = function(){
 			start = new Date().getTime() - current;
-			var newTop = Tween.Cubic.easeOut(start, oldScrollTop, distance, during);
+			var newTop = $.easing[easing](0, start, oldScrollTop, distance, during);
 			$obj.scrollTop(newTop);
 			if (start < during) {
          		requestAnimationId = requestAnimationFrame(_run);
